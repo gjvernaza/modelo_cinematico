@@ -1,4 +1,4 @@
-//#include "BluetoothSerial.h"
+#include "BluetoothSerial.h"
 
 //////// valores de los pines del motor 1 //////////
 const int phase_A_M1 = 35;
@@ -17,8 +17,8 @@ const int IN4_M2 = 22;
 //////// valores de los pines del motor 3 //////////
 const int phase_A_M3 = 26;
 const int phase_B_M3 = 25;
-const int ENA_M3 = 15;
-const int IN1_M3 = 2;
+const int ENA_M3 = 2;
+const int IN1_M3 = 15;
 const int IN2_M3 = 0;
 
 //////// valores de los pines del motor 4 //////////
@@ -138,12 +138,12 @@ float w_ref = 0; // Velocidad angular total de referencia
 
 float theta = 0; // Angulo de orientación del robot
 
-//BluetoothSerial SerialBT;
+BluetoothSerial SerialBT;
 
 void setup(){
 
     Serial.begin(115200);
-    //SerialBT.begin("ESP32test");
+    SerialBT.begin("ESP32_Master");
     
     pinMode(phase_A_M1, INPUT);
     pinMode(phase_B_M1, INPUT);
@@ -205,19 +205,19 @@ void setup(){
 
 }
 
-void serialEvent()
-{
-    while (Serial.available())
-    {
-        char inChar = (char)Serial.read();
-        inputString += inChar;
-
-        if (inChar == '\n')
-        {
-            stringComplete = true;
-        }
-    }
-}
+//void serialEvent()
+//{
+//    while (Serial.available())
+//    {
+//        char inChar = (char)Serial.read();
+//        inputString += inChar;
+//
+//        if (inChar == '\n')
+//        {
+//            stringComplete = true;
+//        }
+//    }
+//}
 
 void encoder_M1()
 {
@@ -486,21 +486,32 @@ void get_data(String request)
 void direct_kinematics(float w_1, float w_2, float w_3, float w_4)
 {
     vf = radius_wheel * (w_1 + w_2 + w_3 + w_4) / 4;
-    vl = radius_wheel * (w_1 - w_2 + w_3 - w_4) / 4;
-    w  = radius_wheel * (w_1 + w_2 - w_3 - w_4) / 4;
+    vl = radius_wheel * (-w_1 + w_2 - w_3 + w_4) / 4;
+    w  = radius_wheel * (w_1 - w_2 - w_3 + w_4) / (4*(a+b));
 }
 
 void inverse_kinematics(float v_f, float v_l, float w_t)
 {
-    w1_ref = (v_f + v_l + ((a+b) * w_t)) / radius_wheel;
-    w2_ref = (v_f - v_l - ((a+b) * w_t)) / radius_wheel;
-    w3_ref = (v_f + v_l - ((a+b) * w_t)) / radius_wheel;
-    w4_ref = (v_f - v_l + ((a+b) * w_t)) / radius_wheel;
+    w1_ref = (v_f - v_l + ((a+b) * w_t)) / radius_wheel;
+    w2_ref = (v_f + v_l - ((a+b) * w_t)) / radius_wheel;
+    w3_ref = (v_f - v_l - ((a+b) * w_t)) / radius_wheel;
+    w4_ref = (v_f + v_l + ((a+b) * w_t)) / radius_wheel;
     
     
 }
 
 void loop(){
+
+    if (SerialBT.available())
+    {
+        char inChar = (char)SerialBT.read();
+        inputString += inChar;
+
+        if (inChar == '\n')
+        {
+            stringComplete = true;
+        }
+    }
     if(stringComplete){
         get_data(inputString);
         stringComplete = false;
